@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium AI dark palette — 80% dark neutral / 15% purple-blue / 5% green */
+    --background: 228 24% 4%;          /* #08090D */
+    --foreground: 213 31% 97%;         /* #F5F7FA */
+
+    --card: 215 22% 11%;               /* #161B22 */
+    --card-foreground: 213 31% 97%;
+
+    --popover: 215 22% 11%;
+    --popover-foreground: 213 31% 97%;
+
+    --primary: 252 100% 68%;           /* #7C5CFF AI Purple */
+    --primary-foreground: 213 31% 97%;
+
+    --secondary: 219 24% 9%;
+    --secondary-foreground: 213 31% 97%;
+
+    --muted: 219 24% 9%;
+    --muted-foreground: 217 14% 65%;   /* ~#A9B2C3 */
+
+    --accent: 211 100% 65%;            /* #4DA2FF Premium Blue */
+    --accent-foreground: 213 31% 97%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 213 31% 97%;
+
+    --border: 220 13% 16%;
+    --input: 220 13% 16%;
+    --ring: 252 100% 68%;
+
+    --chart-1: 252 100% 68%;           /* #7C5CFF purple */
+    --chart-2: 211 100% 65%;           /* #4DA2FF blue */
+    --chart-3: 155 84% 49%;            /* #14E88F green */
+    --chart-4: 280 70% 65%;
+    --chart-5: 30 90% 65%;
+
+    --radius: 1rem;
+
+    color-scheme: dark;
+  }
+}
+
+html,
+body {
+  background-color: #08090D;
+  color: #F5F7FA;
+}
+
+body {
+  font-feature-settings: 'rlig' 1, 'calt' 1;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(124, 92, 255, 0.14), transparent 55%),
+    radial-gradient(circle at 95% 100%, rgba(77, 162, 255, 0.10), transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+  .glass:hover {
+    border-color: rgba(124, 92, 255, 0.25);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 40px rgba(124, 92, 255, 0.18);
+  }
+  .glow-blue {
+    box-shadow: 0 0 40px rgba(77, 162, 255, 0.12);
+  }
+
+  .hero-glow {
+    position: relative;
+    isolation: isolate;
+  }
+  .hero-glow::before {
+    content: '';
+    position: absolute;
+    inset: -20% -10% auto -10%;
+    height: 60%;
+    background: radial-gradient(
+      ellipse at top,
+      rgba(124, 92, 255, 0.22),
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .ai-accent {
+    background: linear-gradient(
+      180deg,
+      rgba(124, 92, 255, 0.12),
+      rgba(77, 162, 255, 0.06)
+    );
+  }
+
+  .empty-glow {
+    background: radial-gradient(
+      circle at center,
+      rgba(124, 92, 255, 0.10),
+      transparent 70%
+    );
+  }
+}
+
+/* Recharts dark mode tweaks */
+.recharts-cartesian-axis-tick text {
+  fill: #A9B2C3;
+}
+.recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.05);
+}
