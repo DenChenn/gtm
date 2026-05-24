@@ -88,48 +88,53 @@ export type InfluencerRow = {
   kpi: Kpi
 }
 
-type LinkLookup = {
+type IcRow = {
   id: string
-  influencer_campaign: {
-    influencer: { id: string; name: string | null; email: string } | null
-  } | null
+  campaign_id: string
+  influencer: { id: string; name: string | null; email: string } | null
+  campaign: { merchant_id: string } | null
 }
 
+type LinkRow = { id: string; influencer_campaign_id: string }
+
 export async function getMerchantInfluencerStats(merchantId: string): Promise<InfluencerRow[]> {
-  const { data: linksData, error: linksError } = await supabase
-    .from('affiliate_links')
-    .select(
-      `id,
-       influencer_campaign:influencer_campaign!inner(
-         influencer:users(id, name, email),
-         campaign:campaigns!inner(merchant_id)
-       )`
-    )
-    .eq('influencer_campaign.campaign.merchant_id', merchantId)
-  if (linksError) throw linksError
-
-  const links = (linksData ?? []) as unknown as LinkLookup[]
-  const linkToInfluencer = new Map<string, { id: string; name: string | null; email: string }>()
-  const influencerJoinedSet = new Map<string, Set<string>>()
-
-  for (const l of links) {
-    const inf = l.influencer_campaign?.influencer
-    if (!inf) continue
-    linkToInfluencer.set(l.id, inf)
-  }
-
   const { data: icData, error: icError } = await supabase
     .from('influencer_campaign')
-    .select('influencer_id, campaign:campaigns!inner(merchant_id)')
+    .select(
+      `id,
+       campaign_id,
+       influencer:users(id, name, email),
+       campaign:campaigns!inner(merchant_id)`
+    )
     .eq('campaign.merchant_id', merchantId)
   if (icError) throw icError
 
-  type IcRow = { influencer_id: string; campaign: { merchant_id: string } | null }
-  for (const r of (icData ?? []) as unknown as IcRow[]) {
-    if (!r.campaign) continue
-    const set = influencerJoinedSet.get(r.influencer_id) ?? new Set<string>()
-    set.add(r.influencer_id)
-    influencerJoinedSet.set(r.influencer_id, set)
+  const icRows = (icData ?? []) as unknown as IcRow[]
+  const seen = new Map<string, { id: string; name: string | null; email: string }>()
+  const influencerCampaigns = new Map<string, Set<string>>()
+  const icIdToInfluencerId = new Map<string, string>()
+
+  for (const r of icRows) {
+    if (!r.influencer) continue
+    seen.set(r.influencer.id, r.influencer)
+    icIdToInfluencerId.set(r.id, r.influencer.id)
+    const set = influencerCampaigns.get(r.influencer.id) ?? new Set<string>()
+    set.add(r.campaign_id)
+    influencerCampaigns.set(r.influencer.id, set)
+  }
+
+  const linkToInfluencer = new Map<string, string>()
+  const icIds = Array.from(icIdToInfluencerId.keys())
+  if (icIds.length > 0) {
+    const { data: linksData, error: linksError } = await supabase
+      .from('affiliate_links')
+      .select('id, influencer_campaign_id')
+      .in('influencer_campaign_id', icIds)
+    if (linksError) throw linksError
+    for (const l of (linksData ?? []) as unknown as LinkRow[]) {
+      const infId = icIdToInfluencerId.get(l.influencer_campaign_id)
+      if (infId) linkToInfluencer.set(l.id, infId)
+    }
   }
 
   const [clicks, conversions] = await Promise.all([listClickEvents(), listConversionEvents()])
@@ -137,22 +142,19 @@ export async function getMerchantInfluencerStats(merchantId: string): Promise<In
   const perInfluencerClicks = new Map<string, ClickEvent[]>()
   const perInfluencerConversions = new Map<string, ConversionEvent[]>()
   for (const c of clicks) {
-    const inf = linkToInfluencer.get(c.affiliate_link_id)
-    if (!inf) continue
-    const arr = perInfluencerClicks.get(inf.id) ?? []
+    const id = linkToInfluencer.get(c.affiliate_link_id)
+    if (!id) continue
+    const arr = perInfluencerClicks.get(id) ?? []
     arr.push(c)
-    perInfluencerClicks.set(inf.id, arr)
+    perInfluencerClicks.set(id, arr)
   }
   for (const c of conversions) {
-    const inf = linkToInfluencer.get(c.affiliate_link_id)
-    if (!inf) continue
-    const arr = perInfluencerConversions.get(inf.id) ?? []
+    const id = linkToInfluencer.get(c.affiliate_link_id)
+    if (!id) continue
+    const arr = perInfluencerConversions.get(id) ?? []
     arr.push(c)
-    perInfluencerConversions.set(inf.id, arr)
+    perInfluencerConversions.set(id, arr)
   }
-
-  const seen = new Map<string, { id: string; name: string | null; email: string }>()
-  for (const inf of linkToInfluencer.values()) seen.set(inf.id, inf)
 
   const rows: InfluencerRow[] = []
   for (const inf of seen.values()) {
@@ -162,7 +164,7 @@ export async function getMerchantInfluencerStats(merchantId: string): Promise<In
       influencerId: inf.id,
       name: inf.name,
       email: inf.email,
-      joinedCampaigns: influencerJoinedSet.get(inf.id)?.size ?? 0,
+      joinedCampaigns: influencerCampaigns.get(inf.id)?.size ?? 0,
       kpi: aggregateKpi(ic, co),
     })
   }

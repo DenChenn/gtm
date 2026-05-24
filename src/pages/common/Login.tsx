@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { setAuthenticated } from '@/store/authSlice'
 import {
   Card,
   CardContent,
@@ -21,7 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { signIn } from '@/api/auth'
+import { signIn, getCurrentProfile } from '@/api/auth'
 
 const schema = z.object({
   email: z.string().email('請輸入有效的 Email'),
@@ -33,21 +35,29 @@ type FormValues = z.infer<typeof schema>
 export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+  const { status, role } = useAppSelector((s) => s.auth)
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: '', password: '' },
   })
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      navigate(role === 'merchant' ? '/merchant' : '/influencer', { replace: true })
+    }
+  }, [status, role, navigate])
+
   async function onSubmit(values: FormValues) {
     setSubmitting(true)
     try {
       await signIn(values.email, values.password)
+      const profile = await getCurrentProfile()
+      if (profile) dispatch(setAuthenticated(profile))
       toast.success('登入成功')
-      navigate('/', { replace: true })
     } catch (e) {
-      toast.error('登入失敗', { description: (e as Error).message })
-    } finally {
       setSubmitting(false)
+      toast.error('登入失敗', { description: (e as Error).message })
     }
   }
 
