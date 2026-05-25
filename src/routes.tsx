@@ -5,6 +5,7 @@ import App from './App'
 import LoginPage from '@/pages/common/Login'
 import SignupPage from '@/pages/common/Signup'
 import IndexRedirect from '@/pages/common/IndexRedirect'
+import NotFoundPage from '@/pages/common/NotFound'
 import MerchantDashboard from '@/pages/merchant/Dashboard'
 import CampaignListPage from '@/pages/merchant/CampaignList'
 import CampaignDetailPage from '@/pages/merchant/CampaignDetail'
@@ -20,6 +21,7 @@ import ProductLandingPage from '@/pages/tracking/ProductLanding'
 export const router = createBrowserRouter([
   {
     element: <App />,
+    errorElement: <NotFoundPage />,
     children: [
       { index: true, element: <IndexRedirect /> },
       { path: 'login', element: <LoginPage /> },
@@ -57,6 +59,7 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])
