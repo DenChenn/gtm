@@ -43,6 +43,7 @@ const INCLUDE_EXISTING = true
 // ============ Setup ============
 const SUPABASE_URL = process.env.SUPABASE_URL
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const APP_ORIGIN = (process.env.APP_ORIGIN ?? 'https://gtm-dun.vercel.app').replace(/\/+$/, '')
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   console.error(
@@ -276,11 +277,12 @@ async function main() {
       const key = `${ic.id}|${p.id}`
       if (existingLinkPairs.has(key)) continue
       existingLinkPairs.add(key)
+      const code = faker.string.alphanumeric(10).toLowerCase()
       linkRows.push({
         influencer_campaign_id: ic.id,
         product_id: p.id,
-        target_url: `https://shop.example.com/p/${p.id}`,
-        code: faker.string.alphanumeric(10).toLowerCase(),
+        target_url: `${APP_ORIGIN}/p/${p.id}?ref=${code}`,
+        code,
       })
     }
   }
